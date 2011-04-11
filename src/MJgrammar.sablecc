@@ -1,0 +1,253 @@
+Package MiniJava;
+
+Helpers
+
+all = [0..0xffff];
+digit = ['0'..'9'];
+cr = 13;
+lf = 10;
+tab = 9;
+eol = cr lf|cr|lf;
+letter = [['A'..'Z']+['a'..'z']];
+string_char = [[all - '\'] - '"']|('\' ('"'|'\'|'n'|'t') );
+
+comment_block_start = '/*';
+comment_block_end = '*/';
+comment_char = [all - [cr+lf]];
+
+Tokens
+ plus = '+';
+ minus = '-';
+ mult = '*';
+ less= '<';
+ not = '!';
+ and = '&&';
+/* or = '||'; nao tem , como nao tem div, mod , > */
+
+ l_par = '(';
+ r_par = ')';
+ l_sqr = '[';
+ r_sqr = ']';
+ sqr_pair = '[]';
+ l_brace = '{';
+ r_brace = '}';
+ dot = '.';
+ semi = ';';
+ comma = ',';
+ assign = '=';
+ compare = '==';
+ blank =(' '|tab|eol)*;
+ class_rw = 'class';
+ public = 'public';
+ static = 'static';
+ void = 'void';
+ main = 'main';
+ extends = 'extends';
+ return = 'return';
+ string_rw = 'String';
+ int = 'int';
+ boolean = 'bolean';
+ if = 'if';
+ else = 'else';
+ while = 'while';
+ length = 'length';
+ true = 'true';
+ false = 'false';
+ this = 'this';
+ new_rw = 'new';
+ println = 'System.out.println' ;
+ id = letter (letter|digit|'_')*;
+ integer = digit+;
+ string_value = ('"' string_char* '"');
+ comment = '//' comment_char* eol | comment_block_start ([all - ['/'+'*']])* comment_block_end; 
+ 
+ 
+
+Ignored Tokens
+ blank,
+ comment;
+ 
+Productions
+ 
+ program = {program_dec} mainclass classdecl*
+ {-> New program( mainclass, [classdecl] ) };
+ 
+ mainclass  {-> mainclass} = class_rw [first]:id [lb1]:l_brace public static void main l_par string_rw sqr_pair [second]:id r_par 
+ [lb2]:l_brace statement [rb2]:r_brace [rb1]:r_brace
+ 
+ {-> New mainclass(first, second ,[statement] )};
+ 
+ classdecl {-> classdecl} = 
+ 			
+ 			 {class_dec} class_rw id l_brace vardecl* methoddecl* r_brace 
+ 			  {->New classdecl.class_dec (id, [vardecl.vardecl], [methoddecl.methoddecl])}
+ 			  |
+ 	 		 { class_dec_ext} class_rw [first]:id extends [second]:id l_brace vardecl* methoddecl* r_brace
+			 { -> New classdecl.class_dec_ext(first,second,[vardecl.vardecl], [methoddecl.methoddecl] )};
+ 
+ vardecl   = type id semi {-> New vardecl(type, id)};
+
+ methoddecl  {->methoddecl} = public type id l_par [args]:formallist? r_par l_brace vardecl* statement* return exp semi r_brace
+ 			{ ->New methoddecl(type, id, [args.formal], [vardecl.vardecl], [statement.statement],exp)};
+
+
+ /* ver aqui */
+ 
+formallist {-> formal*} = 
+     formal formalrest* {-> [formal, formalrest.formal]}
+    | {empty} {-> []};
+
+formalrest {-> formal} =
+    {one_more} comma type id {-> New formal(type, id)};
+
+formal  = 
+    type id {-> New formal(type, id)};
+ 
+
+ type  {-> type} =
+ 		{int_array} int l_sqr r_sqr 
+ 		{-> New type.int_array()}|
+	    {bool} boolean 
+	    {-> New type.bool()} |
+        {integer} int 
+        {-> New type.integer()} |
+	    {id} id
+	    {-> New type.id(id)};
+
+ statement {->statement } =
+ 			 
+ 			 {statement_list} l_brace statement* r_brace 
+ 			 {->New statement.statement_list([statement])} |
+		     {if} if l_par exp r_par [stm1]:statement else [stm2]:statement 
+		     {->New statement.if(exp ,stm1,stm2)} |
+		     {while} while l_par exp r_par statement 
+		     {->New statement.while(exp, statement )} |
+		     {print} println l_par exp r_par semi 
+		     {->New statement.print(exp)} |
+		     {assign} id assign exp semi  
+		     {->New statement.assign(id, exp)} |
+		     {index} id l_sqr [e1]:exp r_sqr assign [e2]:exp semi
+		     {->New statement.index(id, e1.exp, e2.exp)};
+
+		  		   	
+	   		
+
+
+exp	   =  {and} exp_and	{-> exp_and.exp }	;
+     
+     exp_and {-> exp }   = {condit} [left]:exp and [right]:exp_lessthan 	
+     				   {-> New exp.and(left.exp, right.exp) }	|
+	 	            {exp_lessthan} exp_lessthan 
+	 	               {-> exp_lessthan.exp  } ;
+	 	               
+     exp_lessthan  {-> exp }   = [left]:exp_lessthan less [right]:exp_add                  			
+     				   {-> New exp.less_than(left.exp, right.exp) }        |
+                   {exp_add} exp_add 
+                	   	 {-> exp_add.exp } ;
+     
+     exp_add {-> exp }   = {plus} [left]:exp_add plus [right]:product_exp	
+     				            
+     				            {-> New exp.plus(left.exp, right.exp) }	|
+		                   
+		                   {minus} [left]:exp_add minus [right]:product_exp     
+			               
+			                     {-> New exp.minus(left.exp, right.exp) }	|
+            	           
+            	           {mult}  product_exp 
+            	           
+            	           	     {-> product_exp.exp } ;
+     
+     product_exp {-> exp }  = [left]:product_exp mult [right]:not_exp           
+     				  
+     				   { -> New exp.mult(left.exp , right.exp) }     |
+		     	   	  
+		     	   	   {unary} not_exp  {-> not_exp.exp } ;
+		     	   	   
+     not_exp {-> exp }       = {not_exp}    not   postfix       
+     				           {-> New exp.not_exp(postfix.exp) }  		|
+                     	   
+                     	   {postfix} postfix 
+                     	   	   {-> postfix.exp } ;
+     
+     postfix {-> exp }   =  id                   
+     				       {-> New exp.identifier(id) }		|
+	             	       {primary} primary {-> primary.exp } ;
+	             	   	   
+	             	   	   
+     primary {-> exp } 	 = {no_new_array} primary_no_new_array  {-> primary_no_new_array.exp } 	|
+	                       {array_creation} new_rw int l_sqr exp r_sqr 
+	                   	   {-> New exp.new_array(exp) } ;
+     
+     primary_no_new_array {-> exp }   =  {true}     true       					  
+     							{-> New exp.true() }			  |
+	 		     		   {false}    false      					  
+	 		     		 		{-> New exp.false() }			  |
+		     	     	   {integer}  integer 	                                  
+		     	     		 		{-> New exp.integer_literal(integer) } 	  |
+		     	     		 {this}     this 		                          
+		     	     		 		{-> New exp.this() }			  |
+		     	     		 {parens}   l_par exp r_par                             
+		     	     		 		{-> exp.exp }		  |
+		     	     		 {array_lookup} postfix l_sqr [index]: exp r_sqr
+		     		   				{-> New exp.array_lookup(postfix.exp, index.exp)} |
+		     	     		 {class_instance_creation} new_rw id l_par r_par           
+		     	     		 		{-> New exp.new_object(id) } 	  |
+		     	     		 {method_invoc} postfix dot id l_par explist? r_par    
+		     	     		 		{-> New exp.call(postfix.exp, id, [explist.exp] ) }    |
+		     	     		 {length} postfix dot length 
+		     	     		 		{-> New exp.array_length(postfix.exp) } ;
+	
+
+ explist{-> exp*} =  exp exprest*
+ 	{ ->[exp, exprest.exp]} |
+ 	{empty} {-> []};
+ exprest{ -> exp } =  comma exp
+ 	{-> exp};
+ 
+/********************************************************************************/    
+ Abstract Syntax Tree
+ 
+ program =  mainclass classdecl*;
+ 		
+ mainclass = [first]:id [second]:id statement*;
+ 
+ classdecl = {class_dec} id vardecl* methoddecl* |
+		{class_dec_ext} [first]:id [second]:id vardecl* methoddecl*;
+ 
+ vardecl = type id;	
+ 
+ methoddecl = type id [args]:formal*  vardecl* statement* exp;
+ 
+ formal = type id ;
+ 
+ type = {int_array} |
+	    {bool} |
+        {integer} |
+	    {id} id;
+	    
+ statement = {statement_list} statement* |
+		     {if} exp [stm1]:statement [stm2]:statement |
+		     {while} exp  statement |
+		     {print} exp |
+		     {assign} id exp |
+		     {index} id [e1]:exp [e2]:exp;
+
+
+exp	    =     {and}       [left]:exp [right]:exp 	|
+		      {less_than}  [left]:exp [right]:exp 	| 
+		      {plus}       [left]:exp [right]:exp 	| 
+		      {minus}      [left]:exp [right]:exp 	|
+		      {mult}      [left]:exp [right]:exp 	|
+		       
+		      {array_lookup} exp [index]:exp      	|
+		      {array_length} exp 	            	|
+		      {call}   exp id  [args]:exp*          |
+		      {integer_literal}  integer            |
+		      {true}     	   	                    |
+		      {false}    	   	                    |
+		      {identifier}    id                    |
+		      {this}     	   	                    |
+		      {new_array} exp	   	                |
+		      {new_object} id 	                    |
+		      {not_exp} exp	;			             			  
+				

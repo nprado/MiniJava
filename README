@@ -1,0 +1,30 @@
+README 
+
+Projeto Compilador do MiniJava
+Daniel Prado
+Felipe Berti
+Grupo 27 - MC011.
+
+******************
+Criacao do MiniJava no Eclipse.
+
+Para criar um projeto a partir do arquivo ../MiniJava/src/MJgrammar.sablecc deve-se seguir os seguintes passos
+1)Intregar o sablecc com o Eclipse, um tutorial para isso pode ser encontrado em http://www.comp.nus.edu.sg/~sethhetu/rooms/Tutorials/EclipseAndSableCC.html
+  	
+2)Para compilar a gramática use Run->External Tools->"Nome da ferramenta do SableCC ", no meu caso o nome da minha ferramenta do SableCC é SableCC Compiler.
+
+3)Adcione um novo pacote chamado MiniJava no projeto e neste crie as classes Compiler.java e PrettyPrint.java. Substitua todo o conteúdo das classes pelo conteúdo dos
+arquivos ../MiniJava/src/MiniJava/Compiler.java e  ../MiniJava/src/MiniJava/PrettyPrint.java 
+  3.1 A classe Compiler é a nossa main.
+4) Para Rodar o main use Run -> Run Configurations...
+   4.1 Na aba Main preencha os campos "Project" e "Main class" com MiniJava e MiniJava.Compiler
+   4.2 Na aba Arguments preencha o campo "Program arguments" com a localizacao de seu arquivo teste. (Ex: /home/workspace/MiniJava/testes/small/3/04 )	
+   4.3 Clique em Run. 
+
+******************
+
+Usando o arquivo minijava_g23.jar :
+
+1)No terminal, dentro da pasta MiniJava use:
+ java -jar minijava_g23.jar "arquivo_teste"
+ (Ex:  java -jar minijava_g23.jar testes/small/2/06 )	
